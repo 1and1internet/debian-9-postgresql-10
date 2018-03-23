@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+exec sudo -u postgres /usr/lib/postgresql/${PGVER}/bin/postgres -D /var/lib/postgresql/${PGVER}/main

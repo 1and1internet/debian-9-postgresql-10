@@ -1,0 +1,85 @@
+#!/bin/bash
+
+#set -eo pipefail
+
+function create_postgres_database {
+    echo "INITIALISING DATABASE"
+    sudo -u postgres /bin/mkdir ${PG_DBDIR}
+    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} initdb
+}
+
+function start_postgres {
+    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} start -w
+}
+
+function stop_postgres {
+    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} stop -w
+}
+
+function create_admin_user {
+    if [ ! -z $ADMIN_USER ] && [ ! -z $ADMIN_PASS ]
+    then
+        start_postgres
+        sudo -u postgres /usr/bin/psql --command="CREATE ROLE $ADMIN_USER WITH PASSWORD '$ADMIN_PASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;"
+        stop_postgres
+    else
+        echo "WARNING: Missing admin credentials"
+    fi
+}
+
+function edit_postgresql_conf {
+    sudo -u postgres /bin/sed -i \
+        -e "s/^#listen_addresses = 'localhost'/listen_addresses = '*'/" \
+        -e "s|^#log_directory = 'log'|log_directory = '${LOG_DIR}'|" \
+        -e "s/^#log_file_mode = 0600/log_file_mode = 0666/" \
+        ${PG_DBDIR}/postgresql.conf
+}
+
+function configure_client_authentication {
+    # This involves editing the pg_hba.conf file to determine
+    #   . Who can login
+    #   . Where they can login from
+    #   . What the method of authentication should be
+    #
+    # See https://www.postgresql.org/docs/9.6/static/auth-pg-hba-conf.html for detail
+
+    sudo -u postgres /bin/sed -i "s/^\(local *all *all *\).*/\1 ${LOCAL_AUTH_METHOD}/" ${PG_DBDIR}/pg_hba.conf
+    sudo -u postgres /bin/sed -i "s|^\(host *all *all *\)127.*|\1 0.0.0.0/0            ${HOST_AUTH_METHOD}|" ${PG_DBDIR}/pg_hba.conf
+    sudo -u postgres /bin/sed -i "s|^\(host *all *all *\)::1.*|\1 ::0/0            ${HOST_AUTH_METHOD}|" ${PG_DBDIR}/pg_hba.conf
+}
+
+function first_time {
+    DBDIR_EXISTS="false"
+    if [ -d ${PG_DBDIR} ]
+    then
+        DBDIR_EXISTS="true"
+        DB_PRIMED="false"
+        # If any of these files exist then step away
+        for GENFILE in postgresql.conf pg_hba.conf pg_ident.conf
+        do
+            sudo -u postgres /usr/bin/test -f ${PG_DBDIR}/${GENFILE}
+            if [ $? -eq 0 ]
+            then
+                DB_PRIMED="true"
+                break
+            fi
+        done
+
+        if [ $DB_PRIMED == "false" ]
+        then
+            echo "WARNING: Seemingly unprimed database detected. Replacing."
+            sudo -u postgres /bin/mv ${PG_DBDIR} ${PG_DBDIR}.$(date +%Y%m%d-%H%M)
+            DBDIR_EXISTS="false"
+        fi
+    fi
+
+    if [ $DBDIR_EXISTS == "false" ]
+    then
+        create_postgres_database
+        create_admin_user
+        edit_postgresql_conf
+    fi
+}
+
+first_time
+configure_client_authentication
