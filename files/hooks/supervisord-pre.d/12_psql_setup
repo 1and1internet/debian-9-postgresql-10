@@ -78,8 +78,8 @@ function first_time {
         create_postgres_database
         create_admin_user
         edit_postgresql_conf
+        configure_client_authentication
     fi
 }
 
 first_time
-configure_client_authentication
