@@ -4,23 +4,23 @@
 
 function create_postgres_database {
     echo "INITIALISING DATABASE"
-    sudo -u postgres /bin/mkdir ${PG_DBDIR}
-    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} initdb
+    mkdir ${PG_DBDIR}
+    pg_ctl -D ${PG_DBDIR} initdb
 }
 
 function start_postgres {
-    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} start -w
+    pg_ctl -D ${PG_DBDIR} start -w
 }
 
 function stop_postgres {
-    sudo -u postgres ${PG_BIN}/pg_ctl -D ${PG_DBDIR} stop -w
+    pg_ctl -D ${PG_DBDIR} stop -w
 }
 
 function create_admin_user {
     if [ ! -z $ADMIN_USER ] && [ ! -z $ADMIN_PASS ]
     then
         start_postgres
-        sudo -u postgres /usr/bin/psql --command="CREATE ROLE $ADMIN_USER WITH PASSWORD '$ADMIN_PASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;"
+        psql --command="CREATE ROLE $ADMIN_USER WITH PASSWORD '$ADMIN_PASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;" --dbname=postgres
         stop_postgres
     else
         echo "WARNING: Missing admin credentials"
@@ -28,7 +28,7 @@ function create_admin_user {
 }
 
 function edit_postgresql_conf {
-    sudo -u postgres /bin/sed -i \
+    sed -i \
         -e "s/^#listen_addresses = 'localhost'/listen_addresses = '*'/" \
         -e "s|^#log_directory = 'log'|log_directory = '${LOG_DIR}'|" \
         -e "s/^#log_file_mode = 0600/log_file_mode = 0666/" \
@@ -43,9 +43,11 @@ function configure_client_authentication {
     #
     # See https://www.postgresql.org/docs/9.6/static/auth-pg-hba-conf.html for detail
 
-    sudo -u postgres /bin/sed -i "s/^\(local *all *all *\).*/\1 ${LOCAL_AUTH_METHOD}/" ${PG_DBDIR}/pg_hba.conf
-    sudo -u postgres /bin/sed -i "s|^\(host *all *all *\)127.*|\1 0.0.0.0/0            ${HOST_AUTH_METHOD}|" ${PG_DBDIR}/pg_hba.conf
-    sudo -u postgres /bin/sed -i "s|^\(host *all *all *\)::1.*|\1 ::0/0            ${HOST_AUTH_METHOD}|" ${PG_DBDIR}/pg_hba.conf
+    sed -i \
+        -e "s/^\(local *all *all *\).*/\1 ${LOCAL_AUTH_METHOD}/" \
+        -e "s|^\(host *all *all *\)127.*|\1 0.0.0.0/0            ${HOST_AUTH_METHOD}|" \
+        -e "s|^\(host *all *all *\)::1.*|\1 ::0/0            ${HOST_AUTH_METHOD}|" \
+        ${PG_DBDIR}/pg_hba.conf
 }
 
 function first_time {
@@ -57,7 +59,7 @@ function first_time {
         # If any of these files exist then step away
         for GENFILE in postgresql.conf pg_hba.conf pg_ident.conf
         do
-            sudo -u postgres /usr/bin/test -f ${PG_DBDIR}/${GENFILE}
+            test -f ${PG_DBDIR}/${GENFILE}
             if [ $? -eq 0 ]
             then
                 DB_PRIMED="true"
@@ -68,7 +70,7 @@ function first_time {
         if [ $DB_PRIMED == "false" ]
         then
             echo "WARNING: Seemingly unprimed database detected. Replacing."
-            sudo -u postgres /bin/mv ${PG_DBDIR} ${PG_DBDIR}.$(date +%Y%m%d-%H%M)
+            mv ${PG_DBDIR} ${PG_DBDIR}.$(date +%Y%m%d-%H%M)
             DBDIR_EXISTS="false"
         fi
     fi

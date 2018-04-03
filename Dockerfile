@@ -11,13 +11,14 @@ COPY --from=configurability_postgresql10 /go/src/github.com/1and1internet/config
 COPY files /
 ARG PGVER=10
 ARG LOG_DIR=/var/log/postgresql
+ARG PGBIN=/usr/lib/postgresql/${PGVER}/bin
 
 # PostgreSQL installation on debian using https://www.postgresql.org/download/linux/debian/
 
 # Installation
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
 	&& apt-get update \
-	&& apt-get install -y curl gnupg sudo \
+	&& apt-get install -y curl gnupg \
 	&& curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
 	&& apt-get update \
 	&& apt-get install -y postgresql-${PGVER} postgresql-client-${PGVER} \
@@ -35,15 +36,13 @@ RUN cp /opt/postgresql/bash_profile /var/lib/postgresql/.bash_profile \
 	&& chown postgres:postgres /var/run/postgresql/${PGVER}-main.pg_stat_tmp \
 	&& chmod +x /usr/local/bin/run_postgres \
 	&& chmod -R 755 /init /hooks \
-	&& chmod 440 /etc/sudoers.d/postgres \
 	&& cd /etc/postgresql/${PGVER}/main \
-	&& sed -i "s/<PGVER>/${PGVER}/" /etc/sudoers.d/postgres \
 	&& mkdir -p ${LOG_DIR} \
-	&& chmod 777 ${LOG_DIR}
+	&& chmod -R 777 ${LOG_DIR} ${PGBIN} /var/lib/postgresql /var/run/postgresql
 
 ENV PATH=$PATH:/usr/lib/postgresql/${PGVER}/bin \
 	PGVER=${PGVER} \
-	PG_BIN=/usr/lib/postgresql/${PGVER}/bin \
+	PG_BIN=${PGBIN} \
 	PG_DBDIR=/var/lib/postgresql/${PGVER}/main \
 	LOCAL_AUTH_METHOD=password \
     HOST_AUTH_METHOD=password \
