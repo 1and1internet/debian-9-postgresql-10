@@ -1,6 +1,13 @@
+FROM golang as configurability_postgresql10
+MAINTAINER brian.wilkinson@1and1.co.uk
+WORKDIR /go/src/github.com/1and1internet/configurability
+RUN git clone https://github.com/1and1internet/configurability.git . \
+       && make postgresql10 \
+       && echo "configurability postgresql10 plugin successfully built"
+
 FROM 1and1internet/debian-9
 MAINTAINER brian.wilkinson@1and1.co.uk
-#COPY --from=configurability_mysql /go/src/github.com/1and1internet/configurability/bin/plugins/mysql.so /opt/configurability/goplugins
+COPY --from=configurability_postgresql10 /go/src/github.com/1and1internet/configurability/bin/plugins/postgresql10.so /opt/configurability/goplugins
 COPY files /
 ARG PGVER=10
 ARG LOG_DIR=/var/log/postgresql
@@ -44,6 +51,6 @@ ENV PATH=$PATH:/usr/lib/postgresql/${PGVER}/bin \
 	ADMIN_PASS=passw0rd \
 	LOG_DIR=${LOG_DIR}
 
-VOLUME /var/lib/postgresql/${PGVER}
-VOLUME ${LOG_DIR}
+#VOLUME /var/lib/postgresql/${PGVER}
+#VOLUME ${LOG_DIR}
 #EXPOSE 5432
