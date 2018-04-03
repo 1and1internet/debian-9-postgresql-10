@@ -1,13 +1,4 @@
-# PostgreSql 9.6 Debian 9 (Streach) Docker Image
-
-TODO:
-* configurability
-    * See https://wiki.postgresql.org/wiki/Tuning_Your_PostgreSQL_Server
-    * (select name, setting, unit, sourcefile, context,vartype,min_val, max_val from pg_settings;)
-* Memory limits for containers?
-* Fix this README
-* Fix the testpack test
-* Add to image-drone / update webhook / get CI working
+# PostgreSql 10 Debian 9 (Streach) Docker Image
 
 ## Description
 
