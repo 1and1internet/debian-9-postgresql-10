@@ -4,7 +4,6 @@
 
 function create_postgres_database {
     echo "INITIALISING DATABASE"
-    mkdir ${PG_DBDIR}
     pg_ctl -D ${PG_DBDIR} initdb
 }
 
@@ -85,3 +84,4 @@ function first_time {
 }
 
 first_time
+chmod -R 700 ${PG_DBDIR}
