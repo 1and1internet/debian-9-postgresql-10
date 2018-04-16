@@ -85,3 +85,4 @@ function first_time {
 
 first_time
 chmod -R 700 ${PG_DBDIR}
+[ -f ${PG_DBDIR}/postmaster.pid ] && echo "Removing old postmaster.pid" && rm -f ${PG_DBDIR}/postmaster.pid
