@@ -83,6 +83,14 @@ function first_time {
     fi
 }
 
+function remove_old_postmaster_pid {
+    if [ -f ${PG_DBDIR}/postmaster.pid ]
+    then
+        echo "Removing old postmaster.pid"
+        rm -f ${PG_DBDIR}/postmaster.pid
+    fi
+}
+
 first_time
 chmod -R 700 ${PG_DBDIR}
-[ -f ${PG_DBDIR}/postmaster.pid ] && echo "Removing old postmaster.pid" && rm -f ${PG_DBDIR}/postmaster.pid
+remove_old_postmaster_pid
