@@ -15,11 +15,22 @@ function stop_postgres {
     pg_ctl -D ${PG_DBDIR} stop -w
 }
 
+function set_password_for_auth_method {
+    # Only supporting 'password' or 'md5' so far...
+    AUTH_PASS="PASSWORD $ADMIN_PASS"
+    if [ $AUTH_METHOD == "md5" ]
+    then
+        MD5=`echo -n $ADMIN_PASS$ADMIN_USER | md5sum | cut -d' ' -f1`
+        AUTH_PASS="ENCRYPTED PASSWORD 'md5$MD5'"
+    fi
+}
+
 function create_admin_user {
     if [ ! -z $ADMIN_USER ] && [ ! -z $ADMIN_PASS ]
     then
         start_postgres
-        psql --command="CREATE ROLE $ADMIN_USER WITH PASSWORD '$ADMIN_PASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;" --dbname=postgres
+        set_password_for_auth_method
+        psql --command="CREATE ROLE $ADMIN_USER WITH $AUTH_PASS SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;" --dbname=postgres
         stop_postgres
     else
         echo "WARNING: Missing admin credentials"
@@ -40,12 +51,12 @@ function configure_client_authentication {
     #   . Where they can login from
     #   . What the method of authentication should be
     #
-    # See https://www.postgresql.org/docs/9.6/static/auth-pg-hba-conf.html for detail
+    # See https://www.postgresql.org/docs/10/static/auth-pg-hba-conf.html for detail
 
     sed -i \
-        -e "s/^\(local *all *all *\).*/\1 ${LOCAL_AUTH_METHOD}/" \
-        -e "s|^\(host *all *all *\)127.*|\1 0.0.0.0/0            ${HOST_AUTH_METHOD}|" \
-        -e "s|^\(host *all *all *\)::1.*|\1 ::0/0            ${HOST_AUTH_METHOD}|" \
+        -e "s/^\(local *all *all *\).*/\1 ${AUTH_METHOD}/" \
+        -e "s|^\(host *all *all *\)127.*|\1 0.0.0.0/0            ${AUTH_METHOD}|" \
+        -e "s|^\(host *all *all *\)::1.*|\1 ::0/0            ${AUTH_METHOD}|" \
         ${PG_DBDIR}/pg_hba.conf
 }
 
