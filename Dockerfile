@@ -32,7 +32,7 @@ COPY files/ /
 # Post installation configuration
 RUN cp /opt/postgresql/bash_profile /var/lib/postgresql/.bash_profile \
 	&& chown postgres:postgres /var/lib/postgresql/.bash_profile \
-	&& mkdir /var/run/postgresql/${PGVER}-main.pg_stat_tmp \
+	&& mkdir -p /var/run/postgresql/${PGVER}-main.pg_stat_tmp \
 	&& chown postgres:postgres /var/run/postgresql/${PGVER}-main.pg_stat_tmp \
 	&& chmod +x /usr/local/bin/run_postgres \
 	&& chmod -R 755 /init /hooks \
