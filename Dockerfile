@@ -17,6 +17,7 @@ ARG PGBIN=/usr/lib/postgresql/${PGVER}/bin
 
 # Installation
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
+    && echo "root:*:18022:0:99999:7:::" >> /etc/shadow \
 	&& apt-get update \
 	&& apt-get install -y curl gnupg \
 	&& curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
@@ -38,7 +39,8 @@ RUN cp /opt/postgresql/bash_profile /var/lib/postgresql/.bash_profile \
 	&& chmod -R 755 /init /hooks \
 	&& cd /etc/postgresql/${PGVER}/main \
 	&& mkdir -p ${LOG_DIR} \
-	&& chmod -R 777 ${LOG_DIR} ${PGBIN} /var/lib/postgresql /var/run/postgresql
+	&& chmod -R 777 ${LOG_DIR} ${PGBIN} /var/lib/postgresql /var/run/postgresql \
+	&& sed -i '/^root/d' /etc/shadow
 
 ENV PATH=$PATH:/usr/lib/postgresql/${PGVER}/bin \
 	PGVER=${PGVER} \
